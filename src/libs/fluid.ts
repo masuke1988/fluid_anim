@@ -11,19 +11,6 @@ import {
   toGridPosition,
 } from "./fluidUtils";
 
-export type { FluidState, MouseState, Vec2 } from "./fluidTypes";
-export {
-  clamp,
-  clampX,
-  clampY,
-  createMouseState,
-  getRenderBuffer,
-  indexOf,
-  resizeCanvasToDisplaySize,
-  sampleField,
-  toGridPosition,
-} from "./fluidUtils";
-
 export function createFluidState(
   width: number,
   height: number,
@@ -246,6 +233,11 @@ export function stepFluid(state: FluidState): void {
   }
 }
 
+/**
+ * 流体の状態を指定したキャンバスにレンダリングします。
+ * @param state 流体の状態
+ * @param ctx レンダリングに使用するキャンバスのコンテキスト
+ */
 export function renderFluid(
   state: FluidState,
   ctx: CanvasRenderingContext2D
@@ -292,6 +284,12 @@ export function renderFluid(
   ctx.drawImage(renderBuffer.canvas, 0, 0, width, height);
 }
 
+/**
+ * マウスポインタの動きに応じて流体に力と密度を注入します。
+ * @param state 流体の状態
+ * @param mouse マウスの状態
+ * @returns void
+ */
 export function injectFromMouse(
   state: FluidState,
   mouse: MouseState
@@ -317,6 +315,13 @@ export function injectFromMouse(
   mouse.moved = false;
 }
 
+/**
+ * Fluid シミュレーションを指定したキャンバスにマウントします。
+ * キャンバスのサイズに合わせてシミュレーションが自動的に調整されます。
+ * マウント後は、キャンバス上でマウスポインタを動かすと流体が発生します。
+ * @param canvas マウントするキャンバス要素
+ * @returns アンマウント関数
+ */
 export function mountFluid(canvas: HTMLCanvasElement): () => void {
   const ctx = canvas.getContext("2d");
 
@@ -334,24 +339,6 @@ export function mountFluid(canvas: HTMLCanvasElement): () => void {
   const handleResize = (): void => {
     resizeCanvasToDisplaySize(canvas);
     state = createFluidState(canvas.width, canvas.height, 3);
-  };
-
-  const handlePointerDown = (event: PointerEvent): void => {
-    mouse.down = true;
-
-    const pos = toGridPosition(
-      canvas,
-      state.cellSize,
-      event.clientX,
-      event.clientY
-    );
-
-    mouse.x = pos.x;
-    mouse.y = pos.y;
-    mouse.px = pos.x;
-    mouse.py = pos.y;
-    mouse.moved = true;
-    mouse.initialized = true;
   };
 
   const handlePointerMove = (event: PointerEvent): void => {
@@ -377,10 +364,6 @@ export function mountFluid(canvas: HTMLCanvasElement): () => void {
     mouse.moved = true;
   };
 
-  const handlePointerUp = (): void => {
-    mouse.down = false;
-  };
-
   const tick = (): void => {
     injectFromMouse(state, mouse);
     stepFluid(state);
@@ -389,17 +372,13 @@ export function mountFluid(canvas: HTMLCanvasElement): () => void {
   };
 
   window.addEventListener("resize", handleResize);
-  canvas.addEventListener("pointerdown", handlePointerDown);
   canvas.addEventListener("pointermove", handlePointerMove);
-  window.addEventListener("pointerup", handlePointerUp);
 
   tick();
 
   return () => {
     window.cancelAnimationFrame(animationId);
     window.removeEventListener("resize", handleResize);
-    canvas.removeEventListener("pointerdown", handlePointerDown);
     canvas.removeEventListener("pointermove", handlePointerMove);
-    window.removeEventListener("pointerup", handlePointerUp);
   };
 }
